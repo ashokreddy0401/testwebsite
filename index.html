@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login and Menu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .login-container, .menu-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            width: 300px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-form input[type="text"], .login-form input[type="password"], .login-form input[type="submit"] {
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        .menu-container {
+            flex-direction: row;
+            height: 100vh;
+        }
+
+        .menu {
+            width: 200px;
+            background-color: #f4f4f4;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            height: 100vh;
+        }
+
+        .menu button {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .menu button:hover {
+            background-color: #0056b3;
+        }
+
+        .content {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .content h2, .content p {
+            margin: 10px 0;
+        }
+
+        .content input[type="number"] {
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            width: 150px;
+            text-align: center;
+        }
+
+        .content .token-buttons button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background-color: white;
+            color: black;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .content .token-buttons button.selected {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .coin-flip {
+            display: flex;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .coin-flip img {
+            width: 100px;
+            height: 100px;
+            margin-right: 20px;
+            transition: transform 1s ease;
+        }
+
+        .coin-flip button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background-color: white;
+            color: black;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .coin-flip button.selected {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .spin-history-table {
+            margin-top: 20px;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .spin-history-table th, .spin-history-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        .spin-history-table th {
+            background-color: #f4f4f4;
+            text-align: left;
+        }
+
+        .spin-history-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .spin-history-table tr:hover {
+            background-color: #ddd;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login Page -->
+    <div class="login-container" id="loginPage">
+        <form class="login-form" onsubmit="return login(event)">
+            <h2>Login</h2>
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <input type="submit" value="Start Game">
+        </form>
+    </div>
+
+    <!-- Menu Page -->
+    <div class="menu-container" id="menuPage" style="display: none;">
+        <div class="menu">
+            <button onclick="startGame()">Start Game</button>
+            <button onclick="viewSpins()">View Spins</button>
+        </div>
+        <div class="content" id="contentArea">
+            <h2>Welcome!</h2>
+            <p>Select an option from the left menu.</p>
+        </div>
+    </div>
+
+    <script>
+        let accountBalance = parseInt(localStorage.getItem('accountBalance')) || 1000;
+        let selectedSide = null;
+        let spinHistory = JSON.parse(localStorage.getItem('spinHistory')) || [];
+
+        function login(event) {
+            event.preventDefault();
+            document.getElementById("loginPage").style.display = "none";
+            document.getElementById("menuPage").style.display = "flex";
+        }
+
+        function startGame() {
+            document.getElementById("contentArea").innerHTML = `
+                <h2>Play Game</h2>
+                <p id="balanceDisplay">Account Balance: $${accountBalance}</p>
+                <input type="number" id="tokenAmount" placeholder="Enter token amount" min="1">
+                <div class="token-buttons">
+                    <button id="headsButton" onclick="chooseSide('Heads')">Heads</button>
+                    <button id="tailsButton" onclick="chooseSide('Tails')">Tails</button>
+                </div>
+                <div class="coin-flip">
+                    <img id="coinImage" src="bitcoinheads.png" alt="Bitcoin Heads">
+                    <button id="spinButton" onclick="spinCoin()">Spin</button>
+                </div>
+                <div class="result" id="resultArea"></div>
+            `;
+        }
+
+        function viewSpins() {
+            let tableHTML = `
+                <h2>Spin History</h2>
+                <table class="spin-history-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Selected Side</th>
+                            <th>Result Side</th>
+                            <th>Amount</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${spinHistory.map(entry => `
+                            <tr>
+                                <td>${entry.date}</td>
+                                <td>${entry.selectedSide}</td>
+                                <td>${entry.resultSide}</td>
+                                <td>${entry.amount}</td>
+                                <td>$${entry.balance}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <button onclick="startGame()">Back to Game</button>
+            `;
+            document.getElementById("contentArea").innerHTML = tableHTML;
+        }
+
+        function chooseSide(side) {
+            selectedSide = side;
+            let headsButton = document.getElementById("headsButton");
+            let tailsButton = document.getElementById("tailsButton");
+
+            // Reset button styles
+            headsButton.classList.remove("selected");
+            tailsButton.classList.remove("selected");
+
+            // Highlight the selected button
+            if (side === 'Heads') {
+                headsButton.classList.add("selected");
+            } else if (side === 'Tails') {
+                tailsButton.classList.add("selected");
+            }
+        }
+
+        function spinCoin() {
+            let coinImage = document.getElementById("coinImage");
+            let resultArea = document.getElementById("resultArea");
+            let balanceDisplay = document.getElementById("balanceDisplay");
+            let tokenAmount = parseInt(document.getElementById("tokenAmount").value) || 0;
+
+            if (!selectedSide) {
+                resultArea.textContent = "Please select Heads or Tails.";
+                return;
+            }
+
+            // Rotate the coin image vertically
+            coinImage.style.transform = "rotateY(360deg)";
+
+            // Randomly select heads or tails after a brief delay
+            setTimeout(() => {
+                const randomSide = Math.random() < 0.5 ? "bitcoinheads.png" : "bitcointails.png";
+                const resultSide = randomSide === "bitcoinheads.png" ? 'Heads' : 'Tails';
+                coinImage.src = randomSide;
+                coinImage.style.transform = "rotateY(0deg)";
+
+                // Determine the result
+                if (selectedSide === resultSide) {
+                    accountBalance += tokenAmount;
+                    resultArea.textContent = `You won! ${resultSide} was selected. Your new balance is $${accountBalance}.`;
+                } else {
+                    accountBalance -= tokenAmount;
+                    resultArea.textContent = `You lost! ${resultSide} was selected. Your new balance is $${accountBalance}.`;
+                }
+
+                // Store data in local storage
+                localStorage.setItem('accountBalance', accountBalance);
+
+                // Save spin history
+                spinHistory.push({
+                    date: new Date().toLocaleString(),
+                    selectedSide: selectedSide,
+                    resultSide: resultSide,
+                    amount: tokenAmount,
+                    balance: accountBalance
+                });
+                localStorage.setItem('spinHistory', JSON.stringify(spinHistory));
+
+                // Check balance and prompt if needed
+                if (accountBalance < 10) {
+                    if (confirm("Your balance is below 10. Do you want to reset it to 1000?")) {
+                        accountBalance = 1000;
+                        localStorage.setItem('accountBalance', accountBalance);
+                        balanceDisplay.textContent = `Account Balance: $${accountBalance}`;
+                    }
+                }
+
+                // Display result for 5 seconds
+                setTimeout(() => {
+                    // Reset page to default values
+                    selectedSide = null;
+                    document.getElementById("tokenAmount").value = '';
+                    document.getElementById("headsButton").classList.remove("selected");
+                    document.getElementById("tailsButton").classList.remove("selected");
+                    resultArea.textContent = ''; // Clear the result area
+                    balanceDisplay.textContent = `Account Balance: $${accountBalance}`; // Update balance display
+                }, 5000); // Time to display result
+            }, 1000); // Duration of spin animation
+        }
+    </script>
+
+</body>
+</html>
